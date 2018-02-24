@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26730.15
+VisualStudioVersion = 15.0.27130.2024
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoolADB", "CoolADB\CoolADB.csproj", "{D931B1F3-6070-4B8B-A073-2A219B3EC1FA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestbedConsole", "TestbedConsole\TestbedConsole.csproj", "{20AF7ABC-D9E3-4790-81CB-A1B44127FA58}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{D931B1F3-6070-4B8B-A073-2A219B3EC1FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D931B1F3-6070-4B8B-A073-2A219B3EC1FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D931B1F3-6070-4B8B-A073-2A219B3EC1FA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{20AF7ABC-D9E3-4790-81CB-A1B44127FA58}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{20AF7ABC-D9E3-4790-81CB-A1B44127FA58}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{20AF7ABC-D9E3-4790-81CB-A1B44127FA58}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{20AF7ABC-D9E3-4790-81CB-A1B44127FA58}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
