@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
-//using System.Windows.Forms;
 
 namespace CoolADB
 {
@@ -20,8 +19,6 @@ namespace CoolADB
             set
             {
                 _adbPath = File.Exists(value) ? value : "adb";
-                //if (File.Exists(value)) adbPath = value;
-                //else adbPath = "\"" + adbPath + "\"";
             }
         }
 
@@ -38,51 +35,6 @@ namespace CoolADB
 
         // Needed data types for our emulated shell
         string Command = "";
-
-        //private string RunScript(string scriptText)
-        //{
-        //    // create Powershell runspace
-
-        //    Runspace runspace = RunspaceFactory.CreateRunspace();
-
-        //    // open it
-
-        //    runspace.Open();
-
-        //    // create a pipeline and feed it the script text
-
-        //    Pipeline pipeline = runspace.CreatePipeline();
-        //    pipeline.Commands.AddScript(scriptText);
-
-        //    // add an extra command to transform the script
-        //    // output objects into nicely formatted strings
-
-        //    // remove this line to get the actual objects
-        //    // that the script returns. For example, the script
-
-        //    // "Get-Process" returns a collection
-        //    // of System.Diagnostics.Process instances.
-
-        //    pipeline.Commands.Add("Out-String");
-
-        //    // execute the script
-
-        //    Collection < psobject /> results = pipeline.Invoke();
-
-        //    // close the runspace
-
-        //    runspace.Close();
-
-        //    // convert the script result into a single string
-
-        //    StringBuilder stringBuilder = new StringBuilder();
-        //    foreach (PSObject obj in results)
-        //    {
-        //        stringBuilder.AppendLine(obj.ToString());
-        //    }
-
-        //    return stringBuilder.ToString();
-        //}
 
         // Create an emulated shell for executing commands
         private void cmdSend(object sender, DoWorkEventArgs e)
@@ -103,7 +55,6 @@ namespace CoolADB
             if (Command.StartsWith("\"" + adbPath + "\" logcat")) return;
             process.WaitForExit();
             Output = process.StandardOutput.ReadToEnd();
-            //Complete = true;
         }
 
         // Send a command to emulated shell
@@ -115,56 +66,109 @@ namespace CoolADB
             CMD.RunWorkerAsync();
             while (CMD.IsBusy)
             {
-                //var busy = CMD.IsBusy;
                 Thread.Sleep(10);
             }
-            //Complete = false;
         }
 
-        // Sleep until output
-        //public void Sleep(int milliseconds)
-        //{
-        //    DateTime delayTime = DateTime.Now.AddMilliseconds(milliseconds);
-        //    while (DateTime.Now < delayTime)
-        //    {
-        //        Application.DoEvents();
-        //    }
-        //}
-
         // Bootstate for rebooting
-        public enum BootState
+        public enum bootState
         {
             System, Bootloader, Recovery
         }
 
-        public enum Commands
+        public enum commands
         {
             Connect,
             Disconnect,
             StartServer,
             KillServer,
-            ListDevices
+            ListDevices,
+            Reboot,
+            RebootRecovery,
+            RebootBootloader,
+            Execute,
+            ExecuteAsRoot,
+            Remount,
+            //TODO
+            Push,
+            Pull,
+            Install,
+            ForceInstall,
+            Uninstall,
+            Backup,
+            Restore,
+            Logcat,
+            LogcatOverwrite
         }
 
-        public string SendCommandExposed(Commands commandToSend)
+        public string SendCommandExposed(commands commandToSend, List<string> parameters)
         {
             var commandText = string.Empty;
 
             switch (commandToSend)
             {
-                case Commands.StartServer:
-                    commandText = "start-server";
+                case commands.Connect:
+                    commandText = $"connect {parameters.FirstOrDefault() }";
                     break;
-                case Commands.KillServer:
-                    commandText = "kill-server";
+                case commands.Disconnect:
+                    commandText = $"disconnect {parameters.FirstOrDefault() }";
                     break;
-                case Commands.ListDevices:
-                    commandText = "devices";
+                case commands.StartServer:
+                    commandText = $"start-server";
+                    break;
+                case commands.KillServer:
+                    commandText = $"kill-server";
+                    break;
+                case commands.ListDevices:
+                    commandText = $"devices";
+                    break;
+                case commands.Reboot:
+                    commandText = $"reboot";
+                    break;
+                case commands.RebootBootloader:
+                    commandText = $"reboot bootloader";
+                    break;
+                case commands.RebootRecovery:
+                    commandText = $"reboot recovery";
+                    break;
+                case commands.Execute:
+                    commandText = $"shell {parameters.FirstOrDefault() }";
+                    break;
+                case commands.ExecuteAsRoot:
+                    commandText = $"shell su -c  \"{parameters.FirstOrDefault() }\"";
+                    break;
+                case commands.Remount:
+                    commandText = $"shell su -c \"mount -o rw,remount /system\"";
+                    break;
+                case commands.Push:
+                    commandText = $"push { string.Join(" ", parameters.Select(x => string.Concat("\"", x, "\""))) }";
+                    break;
+                case commands.Pull:
+                    commandText = $"pull {parameters}";
+                    break;
+                case commands.Install:
+                case commands.ForceInstall:
+                    commandText = $"install \"{parameters}\"";
+                    break;
+                case commands.Uninstall:
+                    commandText = $"uninstall \"{parameters}\"";
+                    break;
+                case commands.Backup:
+                    commandText = $"backup \"{parameters}\"";
+                    break;
+                case commands.Restore:
+                    commandText = $"backup \"{parameters}\"";
+                    break;
+                case commands.Logcat:
+                    commandText = $"logcat >> \"{parameters}\"";
+                    break;
+                case commands.LogcatOverwrite:
+                    commandText = $"logcat > \"{parameters}\"";
                     break;
 
             }
 
-            SendCommand($" &\"{adbPath}\" {commandText}");
+            SendCommand($"\"{adbPath}\" {commandText}");
 
             return Output;
         }
@@ -206,8 +210,10 @@ namespace CoolADB
 
         public void Execute(string command, bool asroot)
         {
-            if (asroot) SendCommand("\"" + adbPath + "\" shell su -c \"" + command + "\"");
-            else SendCommand("\"" + adbPath + "\" shell " + command);
+            if (asroot)
+                SendCommand("\"" + adbPath + "\" shell su -c \"" + command + "\"");
+            else
+                SendCommand("\"" + adbPath + "\" shell " + command);
         }
 
         public void Remount()
@@ -215,36 +221,75 @@ namespace CoolADB
             SendCommand("\"" + adbPath + "\" shell su -c \"mount -o rw,remount /system\"");
         }
 
-        public void Reboot(BootState boot)
+        public void Reboot(bootState boot)
         {
             switch (boot)
             {
-                case BootState.System:
-                    SendCommand($"& \"{ adbPath }\" reboot");
+                case bootState.System:
+                    SendCommand($"\"{ adbPath }\" reboot");
                     break;
-                case (BootState.Bootloader):
-                    SendCommand($"& \"{ adbPath }\" reboot bootloader\"");
+                case (bootState.Bootloader):
+                    SendCommand($"\"{ adbPath }\" reboot bootloader\"");
                     break;
-                case (BootState.Recovery):
-                    SendCommand($"& \"{ adbPath }\" reboot recovery");
+                case (bootState.Recovery):
+                    SendCommand($"\"{ adbPath }\" reboot recovery");
                     break;
             }
         }
 
         public void Push(string input, string output)
         {
-            try { SendCommand("\"" + adbPath + "\" push \"" + input + "\" \"" + output + "\""); } catch { try { SendCommand("\"" + adbPath + "\" push \"" + input.Replace("/", "\\") + "\" \"" + output + "\""); } catch { } }
+            try
+            {
+                SendCommand("\"" + adbPath + "\" push \"" + input + "\" \"" + output + "\"");
+            }
+            catch
+            {
+                try
+                {
+                    SendCommand("\"" + adbPath + "\" push \"" + input.Replace("/", "\\") + "\" \"" + output + "\"");
+                }
+                catch { }
+            }
         }
 
         public void Pull(string input, string output)
         {
-            if (output != null && !string.IsNullOrWhiteSpace(output)) try { SendCommand("\"" + adbPath + "\" pull \"" + input + "\" \"" + output + "\""); } catch { try { SendCommand("\"" + adbPath + "\" pull \"" + input + "\" \"" + output.Replace("/", "\\") + "\""); } catch { } }
-            else try { SendCommand("\"" + adbPath + "\" pull \"" + input + "\""); } catch { }
+            if (output != null && !string.IsNullOrWhiteSpace(output))
+                try
+                {
+                    SendCommand("\"" + adbPath + "\" pull \"" + input + "\" \"" + output + "\"");
+                }
+                catch
+                {
+                    try
+                    {
+                        SendCommand("\"" + adbPath + "\" pull \"" + input + "\" \"" + output.Replace("/", "\\") + "\"");
+                    }
+                    catch { }
+                }
+            else
+                try
+                {
+                    SendCommand("\"" + adbPath + "\" pull \"" + input + "\"");
+                }
+                catch { }
         }
 
         public void Install(string application)
         {
-            try { SendCommand("\"" + adbPath + "\" install \"" + application + "\""); } catch { try { SendCommand("\"" + adbPath + "\" install \"" + application.Replace("/", "\\") + "\""); } catch { } }
+            try
+            {
+                SendCommand("\"" + adbPath + "\" install \"" + application + "\"");
+            }
+            catch
+            {
+                try
+                {
+                    SendCommand("\"" + adbPath + "\" install \"" + application.Replace("/", "\\") + "\"");
+                }
+                catch { }
+            }
         }
 
         public void Uninstall(string packageName)
@@ -254,19 +299,56 @@ namespace CoolADB
 
         public void Backup(string backupPath, string backupArgs)
         {
-            if (backupArgs != null && !string.IsNullOrWhiteSpace(backupArgs)) SendCommand("\"" + adbPath + "\" backup \"" + backupPath + "\" " + "\"" + backupArgs + "\"");
-            else SendCommand("\"" + adbPath + "\" backup \"" + backupPath + "\"");
+            if (backupArgs != null && !string.IsNullOrWhiteSpace(backupArgs))
+                SendCommand("\"" + adbPath + "\" backup \"" + backupPath + "\" " + "\"" + backupArgs + "\"");
+            else
+                SendCommand("\"" + adbPath + "\" backup \"" + backupPath + "\"");
         }
 
         public void Restore(string backupPath)
         {
-            try { SendCommand("\"" + adbPath + "\" restore \"" + backupPath + "\""); } catch { try { SendCommand("\"" + adbPath + "\" restore \"" + backupPath.Replace("/", "\\") + "\""); } catch { } }
+            try
+            {
+                SendCommand("\"" + adbPath + "\" restore \"" + backupPath + "\"");
+            }
+            catch
+            {
+                try
+                {
+                    SendCommand("\"" + adbPath + "\" restore \"" + backupPath.Replace("/", "\\") + "\"");
+                }
+                catch { }
+            }
         }
 
         public void Logcat(string logPath, bool overWrite)
         {
-            if (overWrite == true) try { SendCommand("\"" + adbPath + "\" logcat > \"" + logPath + "\""); } catch { try { SendCommand("\"" + adbPath + "\" logcat > \"" + logPath.Replace("/", "\\") + "\""); } catch { } }
-            else try { SendCommand("\"" + adbPath + "\" logcat >> \"" + logPath + "\""); } catch { try { SendCommand("\"" + adbPath + "\" logcat >> \"" + logPath.Replace("/", "\\") + "\""); } catch { } }
+            if (overWrite == true)
+                try
+                {
+                    SendCommand("\"" + adbPath + "\" logcat > \"" + logPath + "\"");
+                }
+                catch
+                {
+                    try
+                    {
+                        SendCommand("\"" + adbPath + "\" logcat > \"" + logPath.Replace("/", "\\") + "\"");
+                    }
+                    catch { }
+                }
+            else
+                try
+                {
+                    SendCommand("\"" + adbPath + "\" logcat >> \"" + logPath + "\"");
+                }
+                catch
+                {
+                    try
+                    {
+                        SendCommand("\"" + adbPath + "\" logcat >> \"" + logPath.Replace("/", "\\") + "\"");
+                    }
+                    catch { }
+                }
         }
     }
 }

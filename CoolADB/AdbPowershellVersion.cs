@@ -26,19 +26,7 @@ namespace CoolADB
             }
         }
 
-        // ----------------------------------------- Create our emulated shell here and assign events
-
-        // Create a background thread an assign work event to our emulated shell method
-        //BackgroundWorker CMD = new BackgroundWorker();
-        //private Process Shell;
-
-        public AdbPowershellVersion()
-        {
-            //CMD.DoWork += new DoWorkEventHandler(cmdSend);
-        }
-
-        // Needed data types for our emulated shell
-        //string Command = "";
+        public AdbPowershellVersion() { }
 
         /// <summary>
         /// 
@@ -91,47 +79,6 @@ namespace CoolADB
             return stringBuilder.ToString();
         }
 
-        // Create an emulated shell for executing commands
-        //private void cmdSend(object sender, DoWorkEventArgs e)
-        //{
-        //    Process process = new Process();
-        //    Shell = process;
-        //    ProcessStartInfo startInfo = new ProcessStartInfo
-        //    {
-        //        WindowStyle = ProcessWindowStyle.Hidden,
-        //        CreateNoWindow = true,
-        //        UseShellExecute = false,
-        //        RedirectStandardOutput = true,
-        //        FileName = "cmd.exe",
-        //        Arguments = "/C \"" + Command + "\""
-        //    };
-        //    process.StartInfo = startInfo;
-        //    process.Start();
-        //    if (Command.StartsWith("\"" + adbPath + "\" logcat")) return;
-        //    process.WaitForExit();
-        //    Output = process.StandardOutput.ReadToEnd();
-        //    //Complete = true;
-        //}
-
-        // Send a command to emulated shell
-        //private void SendCommand(string command)
-        //{
-        //    CMD.WorkerSupportsCancellation = true;
-        //    Command = command;
-
-        //    CMD.RunWorkerAsync();
-        //    while (CMD.IsBusy)
-        //    {
-        //        Thread.Sleep(10);
-        //    }
-        //}
-
-        // Bootstate for rebooting
-        //public enum bootState
-        //{
-        //    System, Bootloader, Recovery
-        //}
-
         public enum commands
         {
             Connect,
@@ -157,47 +104,47 @@ namespace CoolADB
             LogcatOverwrite
         }
 
-        public string SendCommand(commands commandToSend, string parameters = "")
+        public string SendCommand(commands commandToSend, List<string> parameters)
         {
             var commandText = string.Empty;
 
             switch (commandToSend)
             {
                 case commands.Connect:
-                    commandText = $"connect {parameters}";
+                    commandText = $"connect {parameters.FirstOrDefault() }";
                     break;
                 case commands.Disconnect:
-                    commandText = $"disconnect {parameters}";
+                    commandText = $"disconnect {parameters.FirstOrDefault() }";
                     break;
                 case commands.StartServer:
-                    commandText = $"start-server {parameters}";
+                    commandText = $"start-server";
                     break;
                 case commands.KillServer:
-                    commandText = $"kill-server {parameters}";
+                    commandText = $"kill-server";
                     break;
                 case commands.ListDevices:
-                    commandText = $"devices {parameters}";
+                    commandText = $"devices";
                     break;
                 case commands.Reboot:
-                    commandText = $"reboot {parameters}";
+                    commandText = $"reboot";
                     break;
                 case commands.RebootBootloader:
-                    commandText = $"reboot bootloader {parameters}";
+                    commandText = $"reboot bootloader";
                     break;
                 case commands.RebootRecovery:
-                    commandText = $"reboot recovery {parameters}";
+                    commandText = $"reboot recovery";
                     break;
                 case commands.Execute:
-                    commandText = $"shell {parameters}";
+                    commandText = $"shell {parameters.FirstOrDefault() }";
                     break;
                 case commands.ExecuteAsRoot:
-                    commandText = $"shell su -c  \"{parameters}\"";
+                    commandText = $"shell su -c  \"{parameters.FirstOrDefault() }\"";
                     break;
                 case commands.Remount:
                     commandText = $"shell su -c \"mount -o rw,remount /system\"";
                     break;
                 case commands.Push:
-                    commandText = $"push {parameters}";
+                    commandText = $"push { string.Join(" ", parameters.Select(x => string.Concat("\"", x, "\""))) }";
                     break;
                 case commands.Pull:
                     commandText = $"pull {parameters}";

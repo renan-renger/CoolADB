@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Windows.Forms;
 
 namespace CoolADB
@@ -12,16 +11,14 @@ namespace CoolADB
     public partial class ADBClient : Component
     {
         // ----------------------------------------- Adb.exe path, leave blank if in same directory as app or included in PATH
-        private string _adbPath;
-
-        public string adbPath
+        private string adbPath = "adb";
+        public string AdbPath
         {
-            get { return _adbPath; }
+            get { return adbPath; }
             set
             {
-                _adbPath = File.Exists(value) ? value : "adb";
-                //if (File.Exists(value)) adbPath = value;
-                //else adbPath = "\"" + adbPath + "\"";
+                if (File.Exists(value)) adbPath = value;
+                else adbPath = "\"" + adbPath + "\"";
             }
         }
 
@@ -33,77 +30,31 @@ namespace CoolADB
 
         public ADBClient()
         {
-            CMD.DoWork += new DoWorkEventHandler(cmdSend);
+            CMD.DoWork += new DoWorkEventHandler(CMD_Send);
         }
 
         // Needed data types for our emulated shell
         string Command = "";
-
-        //private string RunScript(string scriptText)
-        //{
-        //    // create Powershell runspace
-
-        //    Runspace runspace = RunspaceFactory.CreateRunspace();
-
-        //    // open it
-
-        //    runspace.Open();
-
-        //    // create a pipeline and feed it the script text
-
-        //    Pipeline pipeline = runspace.CreatePipeline();
-        //    pipeline.Commands.AddScript(scriptText);
-
-        //    // add an extra command to transform the script
-        //    // output objects into nicely formatted strings
-
-        //    // remove this line to get the actual objects
-        //    // that the script returns. For example, the script
-
-        //    // "Get-Process" returns a collection
-        //    // of System.Diagnostics.Process instances.
-
-        //    pipeline.Commands.Add("Out-String");
-
-        //    // execute the script
-
-        //    Collection < psobject /> results = pipeline.Invoke();
-
-        //    // close the runspace
-
-        //    runspace.Close();
-
-        //    // convert the script result into a single string
-
-        //    StringBuilder stringBuilder = new StringBuilder();
-        //    foreach (PSObject obj in results)
-        //    {
-        //        stringBuilder.AppendLine(obj.ToString());
-        //    }
-
-        //    return stringBuilder.ToString();
-        //}
+        bool Complete = false;
 
         // Create an emulated shell for executing commands
-        private void cmdSend(object sender, DoWorkEventArgs e)
+        private void CMD_Send(object sender, DoWorkEventArgs e)
         {
             Process process = new Process();
             Shell = process;
-            ProcessStartInfo startInfo = new ProcessStartInfo
-            {
-                WindowStyle = ProcessWindowStyle.Hidden,
-                CreateNoWindow = true,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                FileName = "cmd.exe",
-                Arguments = "/C \"" + Command + "\""
-            };
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+            startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            startInfo.CreateNoWindow = true;
+            startInfo.UseShellExecute = false;
+            startInfo.RedirectStandardOutput = true;
+            startInfo.FileName = "cmd.exe";
+            startInfo.Arguments = "/C \"" + Command + "\"";
             process.StartInfo = startInfo;
             process.Start();
-            if (Command.StartsWith("\"" + adbPath + "\" logcat")) return;
+            if (Command.StartsWith("\"" + adbPath + "\" logcat")) Complete = true;
             process.WaitForExit();
             Output = process.StandardOutput.ReadToEnd();
-            //Complete = true;
+            Complete = true;
         }
 
         // Send a command to emulated shell
@@ -111,14 +62,9 @@ namespace CoolADB
         {
             CMD.WorkerSupportsCancellation = true;
             Command = command;
-            
             CMD.RunWorkerAsync();
-            while (CMD.IsBusy)
-            {
-                //var busy = CMD.IsBusy;
-                Thread.Sleep(10);
-            }
-            //Complete = false;
+            while (!Complete) Sleep(500);
+            Complete = false;
         }
 
         // Sleep until output
@@ -135,38 +81,6 @@ namespace CoolADB
         public enum BootState
         {
             System, Bootloader, Recovery
-        }
-
-        public enum Commands
-        {
-            Connect,
-            Disconnect,
-            StartServer,
-            KillServer,
-            ListDevices
-        }
-
-        public string SendCommandExposed(Commands commandToSend)
-        {
-            var commandText = string.Empty;
-
-            switch (commandToSend)
-            {
-                case Commands.StartServer:
-                    commandText = "start-server";
-                    break;
-                case Commands.KillServer:
-                    commandText = "kill-server";
-                    break;
-                case Commands.ListDevices:
-                    commandText = "devices";
-                    break;
-
-            }
-
-            SendCommand($" &\"{adbPath}\" {commandText}");
-
-            return Output;
         }
 
         // ----------------------------------------- Allow public modifiers to get output
@@ -187,7 +101,7 @@ namespace CoolADB
 
         public void StartServer()
         {
-            SendCommand($"& \"{ adbPath }\" start-server");
+            SendCommand("\"" + adbPath + "\" start-server");
         }
 
         public void KillServer()
@@ -201,7 +115,7 @@ namespace CoolADB
 
             string[] outLines = Output.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
 
-            return outLines.Where(stdout => !stdout[0].Equals('*')).Skip(1).ToList();
+            return outLines.Skip(1).ToList();
         }
 
         public void Execute(string command, bool asroot)
@@ -217,18 +131,9 @@ namespace CoolADB
 
         public void Reboot(BootState boot)
         {
-            switch (boot)
-            {
-                case BootState.System:
-                    SendCommand($"& \"{ adbPath }\" reboot");
-                    break;
-                case (BootState.Bootloader):
-                    SendCommand($"& \"{ adbPath }\" reboot bootloader\"");
-                    break;
-                case (BootState.Recovery):
-                    SendCommand($"& \"{ adbPath }\" reboot recovery");
-                    break;
-            }
+            if (boot == BootState.System) SendCommand("\"" + adbPath + "\" shell su -c \"reboot\"");
+            if (boot == BootState.Bootloader) SendCommand("\"" + adbPath + "\" shell su -c \"reboot bootloader\"");
+            if (boot == BootState.Recovery) SendCommand("\"" + adbPath + "\" shell su -c \"reboot recovery\"");
         }
 
         public void Push(string input, string output)
