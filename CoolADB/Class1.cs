@@ -22,11 +22,17 @@ namespace CoolADB
             }
         }
 
+        private int adbTimeout;
+        public int AdbTimeout
+        {
+            get { return adbTimeout > 0 ? adbTimeout : 5000; }
+            set { adbTimeout = value; }
+        }
+
         // ----------------------------------------- Create our emulated shell here and assign events
 
         // Create a background thread an assign work event to our emulated shell method
         BackgroundWorker CMD = new BackgroundWorker();
-        private Process Shell;
 
         public ADBClient()
         {
@@ -40,21 +46,31 @@ namespace CoolADB
         // Create an emulated shell for executing commands
         private void CMD_Send(object sender, DoWorkEventArgs e)
         {
-            Process process = new Process();
-            Shell = process;
-            ProcessStartInfo startInfo = new ProcessStartInfo();
-            startInfo.WindowStyle = ProcessWindowStyle.Hidden;
-            startInfo.CreateNoWindow = true;
-            startInfo.UseShellExecute = false;
-            startInfo.RedirectStandardOutput = true;
-            startInfo.FileName = "cmd.exe";
-            startInfo.Arguments = "/C \"" + Command + "\"";
-            process.StartInfo = startInfo;
-            process.Start();
-            if (Command.StartsWith("\"" + adbPath + "\" logcat")) Complete = true;
-            process.WaitForExit();
-            Output = process.StandardOutput.ReadToEnd();
-            Complete = true;
+            ProcessStartInfo startInfo = new ProcessStartInfo()
+            {
+                WindowStyle = ProcessWindowStyle.Hidden,
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                FileName = "cmd.exe",
+                Arguments = "/C \"" + Command + "\""
+            };
+
+            using (Process process = Process.Start(startInfo))
+            {
+                if (Command.StartsWith("\"" + adbPath + "\" logcat"))
+                {
+                    Complete = true;
+                    process.WaitForExit();
+                    return;
+                }
+
+                if (!process.WaitForExit(AdbTimeout))
+                    process.Kill();
+
+                Output = process.StandardOutput.ReadToEnd();
+                Complete = true;
+            };
         }
 
         // Send a command to emulated shell

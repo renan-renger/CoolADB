@@ -26,7 +26,6 @@ namespace CoolADB
 
         // Create a background thread an assign work event to our emulated shell method
         BackgroundWorker CMD = new BackgroundWorker();
-        private Process Shell;
 
         public AdbCmdVersion()
         {
@@ -39,9 +38,8 @@ namespace CoolADB
         // Create an emulated shell for executing commands
         private void cmdSend(object sender, DoWorkEventArgs e)
         {
-            Process process = new Process();
-            Shell = process;
-            ProcessStartInfo startInfo = new ProcessStartInfo
+            
+            ProcessStartInfo startInfo = new ProcessStartInfo()
             {
                 WindowStyle = ProcessWindowStyle.Hidden,
                 CreateNoWindow = true,
@@ -50,11 +48,17 @@ namespace CoolADB
                 FileName = "cmd.exe",
                 Arguments = "/C \"" + Command + "\""
             };
-            process.StartInfo = startInfo;
-            process.Start();
-            if (Command.StartsWith("\"" + adbPath + "\" logcat")) return;
-            process.WaitForExit();
-            Output = process.StandardOutput.ReadToEnd();
+
+            using(Process process = Process.Start(startInfo))
+            {
+                if (Command.StartsWith("\"" + adbPath + "\" logcat"))
+                    return;
+
+                if (!process.WaitForExit(5000))
+                    process.Kill();
+
+                Output = process.StandardOutput.ReadToEnd();
+            }
         }
 
         // Send a command to emulated shell

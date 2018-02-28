@@ -46,7 +46,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AdbPowershellVersion.cs" />
-    <Compile Include="CmdVersion.cs">
+    <Compile Include="Class1.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="AdbCmdVersion.cs" />
